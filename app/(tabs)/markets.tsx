@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, commonStyles } from '../../styles/commonStyles';
 import CryptoCard from '../../components/CryptoCard';
@@ -11,7 +11,7 @@ import { formatLargeNumber } from '../../utils/formatters';
 
 export default function MarketsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { cryptoAssets, loading, refreshing, error, refreshData } = useAppData();
+  const { userData, cryptoAssets, loading, refreshing, error, refreshData, executeTrade } = useAppData();
 
   const filteredAssets = cryptoAssets.filter(
     (asset) =>
@@ -22,6 +22,46 @@ export default function MarketsScreen() {
   const handleCryptoPress = (symbol: string) => {
     console.log(`Navigate to ${symbol} trading`);
     router.push(`/(tabs)/trade?symbol=${symbol.toLowerCase()}`);
+  };
+
+  const handleQuickTrade = async (type: 'buy' | 'sell', symbol: string) => {
+    if (!userData) {
+      Alert.alert('Error', 'User data not loaded');
+      return;
+    }
+
+    const asset = cryptoAssets.find(a => a.symbol === symbol);
+    if (!asset) {
+      Alert.alert('Error', 'Asset not found');
+      return;
+    }
+
+    // Quick trade with default amounts
+    const defaultAmount = type === 'buy' ? 100 / asset.price : 0.001; // $100 worth or 0.001 units
+    
+    Alert.alert(
+      `Quick ${type.toUpperCase()}`,
+      `${type === 'buy' ? 'Buy' : 'Sell'} ${defaultAmount.toFixed(8)} ${symbol} at $${asset.price.toFixed(2)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              const result = await executeTrade(symbol, type, defaultAmount, asset.price);
+              if (result.success) {
+                Alert.alert('Success! 🎉', result.message);
+              } else {
+                Alert.alert('Trade Failed', result.message);
+              }
+            } catch (error) {
+              console.error('Quick trade error:', error);
+              Alert.alert('Error', 'Failed to execute trade');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Calculate market stats from available data
@@ -100,6 +140,8 @@ export default function MarketsScreen() {
                   key={asset.id}
                   asset={asset}
                   onPress={() => handleCryptoPress(asset.symbol)}
+                  showTradeButtons={true}
+                  onQuickTrade={handleQuickTrade}
                 />
               ))
             ) : (

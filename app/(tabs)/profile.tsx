@@ -7,9 +7,11 @@ import Button from '../../components/Button';
 import Icon from '../../components/Icon';
 import SimpleBottomSheet from '../../components/BottomSheet';
 import { useAppData } from '../../hooks/useAppData';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function ProfileScreen() {
   const { userData, loading, updateSettings, clearAllData } = useAppData();
+  const { user, logout } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -45,7 +47,7 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert(
       'Logout',
-      'Are you sure you want to logout? This will clear all your data.',
+      'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -53,9 +55,10 @@ export default function ProfileScreen() {
           style: 'destructive', 
           onPress: async () => {
             try {
-              await clearAllData();
-              Alert.alert('Success', 'Logged out successfully');
+              await logout();
+              console.log('User logged out successfully');
             } catch (error) {
+              console.error('Logout error:', error);
               Alert.alert('Error', 'Failed to logout');
             }
           }
@@ -142,8 +145,13 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <Icon name="person" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.userName}>Crypto Trader</Text>
-            <Text style={styles.userEmail}>trader@cryptoapp.com</Text>
+            <Text style={styles.userName}>
+              {user?.profile?.firstName && user?.profile?.lastName 
+                ? `${user.profile.firstName} ${user.profile.lastName}`
+                : 'Crypto Trader'
+              }
+            </Text>
+            <Text style={styles.userEmail}>{user?.phoneNumber || 'No phone number'}</Text>
             <Text style={styles.userBalance}>
               Balance: ${userData.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
@@ -238,7 +246,7 @@ export default function ProfileScreen() {
             />
 
             <Button
-              text="Logout & Clear Data"
+              text="Logout"
               onPress={handleLogout}
               style={styles.logoutButton}
               textStyle={styles.logoutButtonText}

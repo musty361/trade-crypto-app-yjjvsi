@@ -22,7 +22,7 @@ export interface Portfolio {
   totalChange: number;
   totalChangePercent: number;
   assets: PortfolioAsset[];
-  performance: PortfolioPerformance;
+  performance?: PortfolioPerformance;
 }
 
 export interface PortfolioAsset {
@@ -142,4 +142,23 @@ export interface NewsItem {
   publishedAt: Date;
   sentiment: 'positive' | 'negative' | 'neutral';
   relevantSymbols: string[];
+}
+
+export interface User {
+  id: string;
+  phoneNumber: string;
+  isVerified: boolean;
+  createdAt: Date;
+  lastLoginAt: Date;
+  profile: {
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+  };
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
 }
