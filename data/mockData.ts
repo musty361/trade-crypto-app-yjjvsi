@@ -1,6 +1,7 @@
 
 import { CryptoAsset, Portfolio, Transaction, TradingPair } from '../types/crypto';
 
+// Fallback data used when API is unavailable
 export const mockCryptoAssets: CryptoAsset[] = [
   {
     id: 'bitcoin',
@@ -52,78 +53,48 @@ export const mockCryptoAssets: CryptoAsset[] = [
     marketCap: 17000000000,
     volume24h: 850000000,
   },
+  {
+    id: 'ripple',
+    symbol: 'XRP',
+    name: 'XRP',
+    price: 0.625,
+    change24h: 0.045,
+    changePercent24h: 7.76,
+    marketCap: 34000000000,
+    volume24h: 1200000000,
+  },
+  {
+    id: 'polkadot',
+    symbol: 'DOT',
+    name: 'Polkadot',
+    price: 7.85,
+    change24h: -0.32,
+    changePercent24h: -3.92,
+    marketCap: 9800000000,
+    volume24h: 280000000,
+  },
+  {
+    id: 'chainlink',
+    symbol: 'LINK',
+    name: 'Chainlink',
+    price: 14.75,
+    change24h: 0.89,
+    changePercent24h: 6.42,
+    marketCap: 8200000000,
+    volume24h: 420000000,
+  },
 ];
 
+// Default portfolio for new users
 export const mockPortfolio: Portfolio = {
-  totalValue: 12450.75,
-  totalChange: 325.50,
-  totalChangePercent: 2.68,
-  assets: [
-    {
-      id: 'bitcoin',
-      symbol: 'BTC',
-      name: 'Bitcoin',
-      amount: 0.15,
-      value: 6487.58,
-      price: 43250.50,
-      change24h: 187.55,
-      changePercent24h: 2.98,
-    },
-    {
-      id: 'ethereum',
-      symbol: 'ETH',
-      name: 'Ethereum',
-      amount: 1.8,
-      value: 4771.35,
-      price: 2650.75,
-      change24h: -153.45,
-      changePercent24h: -3.11,
-    },
-    {
-      id: 'solana',
-      symbol: 'SOL',
-      name: 'Solana',
-      amount: 12.5,
-      value: 1230.63,
-      price: 98.45,
-      change24h: 70.88,
-      changePercent24h: 6.12,
-    },
-  ],
+  totalValue: 0,
+  totalChange: 0,
+  totalChangePercent: 0,
+  assets: [],
 };
 
-export const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'buy',
-    symbol: 'BTC',
-    amount: 0.05,
-    price: 42800.00,
-    total: 2140.00,
-    timestamp: new Date('2024-01-15T10:30:00Z'),
-    status: 'completed',
-  },
-  {
-    id: '2',
-    type: 'sell',
-    symbol: 'ETH',
-    amount: 0.5,
-    price: 2700.00,
-    total: 1350.00,
-    timestamp: new Date('2024-01-14T15:45:00Z'),
-    status: 'completed',
-  },
-  {
-    id: '3',
-    type: 'buy',
-    symbol: 'SOL',
-    amount: 10,
-    price: 95.50,
-    total: 955.00,
-    timestamp: new Date('2024-01-13T09:15:00Z'),
-    status: 'completed',
-  },
-];
+// Sample transactions for demonstration
+export const mockTransactions: Transaction[] = [];
 
 export const mockTradingPairs: TradingPair[] = [
   {

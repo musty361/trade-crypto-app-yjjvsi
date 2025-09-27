@@ -1,35 +1,47 @@
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, commonStyles } from '../../styles/commonStyles';
 import CryptoCard from '../../components/CryptoCard';
 import Icon from '../../components/Icon';
-import { mockCryptoAssets } from '../../data/mockData';
 import { router } from 'expo-router';
+import { useAppData } from '../../hooks/useAppData';
+import { formatLargeNumber } from '../../utils/formatters';
 
 export default function MarketsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const { cryptoAssets, loading, refreshing, error, refreshData } = useAppData();
 
-  const filteredAssets = mockCryptoAssets.filter(
+  const filteredAssets = cryptoAssets.filter(
     (asset) =>
       asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const onRefresh = async () => {
-    console.log('Refreshing market data...');
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
-
   const handleCryptoPress = (symbol: string) => {
     console.log(`Navigate to ${symbol} trading`);
-    router.push(`/crypto/${symbol.toLowerCase()}`);
+    router.push(`/(tabs)/trade?symbol=${symbol.toLowerCase()}`);
   };
+
+  // Calculate market stats from available data
+  const totalMarketCap = cryptoAssets.reduce((sum, asset) => sum + asset.marketCap, 0);
+  const totalVolume = cryptoAssets.reduce((sum, asset) => sum + asset.volume24h, 0);
+  const btcAsset = cryptoAssets.find(asset => asset.symbol === 'BTC');
+  const btcDominance = btcAsset && totalMarketCap > 0 
+    ? ((btcAsset.marketCap / totalMarketCap) * 100).toFixed(1)
+    : '0.0';
+
+  if (loading) {
+    return (
+      <SafeAreaView style={commonStyles.container}>
+        <View style={[commonStyles.content, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading market data...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={commonStyles.container}>
@@ -52,32 +64,51 @@ export default function MarketsScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={refreshData} />
           }
         >
+          {error && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>
+                ⚠️ Using cached data - {error}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.marketStats}>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Market Cap</Text>
-              <Text style={styles.statValue}>$1.2T</Text>
+              <Text style={styles.statValue}>{formatLargeNumber(totalMarketCap)}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>24h Volume</Text>
-              <Text style={styles.statValue}>$45.8B</Text>
+              <Text style={styles.statValue}>{formatLargeNumber(totalVolume)}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>BTC Dominance</Text>
-              <Text style={styles.statValue}>52.3%</Text>
+              <Text style={styles.statValue}>{btcDominance}%</Text>
             </View>
           </View>
 
           <View style={styles.cryptoList}>
-            {filteredAssets.map((asset) => (
-              <CryptoCard
-                key={asset.id}
-                asset={asset}
-                onPress={() => handleCryptoPress(asset.symbol)}
-              />
-            ))}
+            <Text style={styles.listHeader}>
+              {searchQuery ? `Search Results (${filteredAssets.length})` : 'Top Cryptocurrencies'}
+            </Text>
+            {filteredAssets.length > 0 ? (
+              filteredAssets.map((asset) => (
+                <CryptoCard
+                  key={asset.id}
+                  asset={asset}
+                  onPress={() => handleCryptoPress(asset.symbol)}
+                />
+              ))
+            ) : (
+              <View style={styles.noResults}>
+                <Text style={styles.noResultsText}>
+                  No cryptocurrencies found matching "{searchQuery}"
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -131,5 +162,42 @@ const styles = StyleSheet.create({
   },
   cryptoList: {
     paddingBottom: 20,
+  },
+  listHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorBanner: {
+    backgroundColor: colors.backgroundAlt,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning || '#F59E0B',
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
+  },
+  errorBannerText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  noResults: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

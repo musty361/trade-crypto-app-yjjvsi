@@ -1,29 +1,41 @@
 
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, commonStyles } from '../../styles/commonStyles';
 import PortfolioCard from '../../components/PortfolioCard';
 import CryptoCard from '../../components/CryptoCard';
-import { mockPortfolio, mockCryptoAssets } from '../../data/mockData';
 import { router } from 'expo-router';
+import { useAppData } from '../../hooks/useAppData';
 
 export default function HomeScreen() {
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = async () => {
-    console.log('Refreshing data...');
-    setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
+  const { userData, cryptoAssets, loading, refreshing, error, refreshData } = useAppData();
 
   const handleCryptoPress = (symbol: string) => {
     console.log(`Navigate to ${symbol} details`);
-    router.push(`/crypto/${symbol.toLowerCase()}`);
+    router.push(`/(tabs)/trade?symbol=${symbol.toLowerCase()}`);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={commonStyles.container}>
+        <View style={[commonStyles.content, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading your portfolio...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <SafeAreaView style={commonStyles.container}>
+        <View style={[commonStyles.content, styles.errorContainer]}>
+          <Text style={styles.errorText}>Failed to load data</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={commonStyles.container}>
@@ -31,7 +43,7 @@ export default function HomeScreen() {
         style={commonStyles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={refreshData} />
         }
       >
         <View style={styles.header}>
@@ -39,13 +51,24 @@ export default function HomeScreen() {
           <Text style={commonStyles.textSecondary}>
             Here&apos;s your portfolio overview
           </Text>
+          <Text style={styles.balance}>
+            Available Balance: ${userData.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
         </View>
 
-        <PortfolioCard portfolio={mockPortfolio} />
+        <PortfolioCard portfolio={userData.portfolio} />
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>
+              ⚠️ Using cached data - {error}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
-          <Text style={commonStyles.subtitle}>Trending</Text>
-          {mockCryptoAssets.slice(0, 5).map((asset) => (
+          <Text style={commonStyles.subtitle}>Market Overview</Text>
+          {cryptoAssets.slice(0, 8).map((asset) => (
             <CryptoCard
               key={asset.id}
               asset={asset}
@@ -62,7 +85,45 @@ const styles = StyleSheet.create({
   header: {
     paddingVertical: 16,
   },
+  balance: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginTop: 8,
+  },
   section: {
     paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.danger,
+    textAlign: 'center',
+  },
+  errorBanner: {
+    backgroundColor: colors.backgroundAlt,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning || '#F59E0B',
+    padding: 12,
+    marginVertical: 8,
+    borderRadius: 8,
+  },
+  errorBannerText: {
+    fontSize: 14,
+    color: colors.text,
   },
 });

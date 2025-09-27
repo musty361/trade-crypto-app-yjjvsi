@@ -1,32 +1,134 @@
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, commonStyles } from '../../styles/commonStyles';
 import Button from '../../components/Button';
 import Icon from '../../components/Icon';
 import SimpleBottomSheet from '../../components/BottomSheet';
+import { useAppData } from '../../hooks/useAppData';
 
 export default function ProfileScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const { userData, loading, updateSettings, clearAllData } = useAppData();
   const [showSettings, setShowSettings] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleNotificationToggle = async (value: boolean) => {
+    if (!userData) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateSettings({ notifications: value });
+      console.log('Notifications updated:', value);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update notification settings');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleBiometricToggle = async (value: boolean) => {
+    if (!userData) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateSettings({ biometric: value });
+      console.log('Biometric setting updated:', value);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update biometric settings');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
       'Logout',
-      'Are you sure you want to logout?',
+      'Are you sure you want to logout? This will clear all your data.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => console.log('User logged out') }
+        { 
+          text: 'Logout', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              await clearAllData();
+              Alert.alert('Success', 'Logged out successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout');
+            }
+          }
+        }
       ]
     );
   };
 
   const handleSupport = () => {
     console.log('Opening support');
-    Alert.alert('Support', 'Contact support at support@cryptoapp.com');
+    Alert.alert(
+      'Support', 
+      'Contact support:\n\n📧 Email: support@cryptoapp.com\n📱 Phone: +1 (555) 123-4567\n💬 Live Chat: Available 24/7',
+      [{ text: 'OK' }]
+    );
   };
+
+  const handleResetPortfolio = () => {
+    setShowResetConfirm(true);
+  };
+
+  const confirmResetPortfolio = async () => {
+    try {
+      await clearAllData();
+      setShowResetConfirm(false);
+      Alert.alert(
+        'Portfolio Reset', 
+        'Your portfolio has been reset to default values with $10,000 starting balance.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset portfolio');
+    }
+  };
+
+  const handleExportData = () => {
+    if (!userData) return;
+    
+    const exportData = {
+      portfolio: userData.portfolio,
+      transactions: userData.transactions,
+      balance: userData.balance,
+      exportDate: new Date().toISOString(),
+    };
+    
+    console.log('Export data:', JSON.stringify(exportData, null, 2));
+    Alert.alert(
+      'Data Export',
+      'Your portfolio data has been logged to the console. In a real app, this would be saved to a file or sent via email.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={commonStyles.container}>
+        <View style={[commonStyles.content, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <SafeAreaView style={commonStyles.container}>
+        <View style={[commonStyles.content, styles.errorContainer]}>
+          <Text style={styles.errorText}>Failed to load profile data</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={commonStyles.container}>
@@ -40,64 +142,73 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <Icon name="person" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.userName}>John Doe</Text>
-            <Text style={styles.userEmail}>john.doe@example.com</Text>
+            <Text style={styles.userName}>Crypto Trader</Text>
+            <Text style={styles.userEmail}>trader@cryptoapp.com</Text>
+            <Text style={styles.userBalance}>
+              Balance: ${userData.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
             
-            <View style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Icon name="card" size={24} color={colors.primary} />
-                <Text style={styles.menuItemText}>Payment Methods</Text>
-              </View>
-              <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
-            </View>
+            <Button
+              text="Payment Methods"
+              onPress={() => Alert.alert('Payment Methods', 'Payment method management coming soon!')}
+              style={styles.menuButton}
+              textStyle={styles.menuButtonText}
+            />
 
-            <View style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Icon name="shield-checkmark" size={24} color={colors.primary} />
-                <Text style={styles.menuItemText}>Security</Text>
-              </View>
-              <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
-            </View>
+            <Button
+              text="Security Settings"
+              onPress={() => Alert.alert('Security', 'Advanced security settings coming soon!')}
+              style={styles.menuButton}
+              textStyle={styles.menuButtonText}
+            />
 
-            <View style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Icon name="document-text" size={24} color={colors.primary} />
-                <Text style={styles.menuItemText}>Transaction History</Text>
-              </View>
-              <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
-            </View>
+            <Button
+              text="Transaction History"
+              onPress={() => Alert.alert('History', `You have ${userData.transactions.length} transactions in your history.`)}
+              style={styles.menuButton}
+              textStyle={styles.menuButtonText}
+            />
+
+            <Button
+              text="Export Data"
+              onPress={handleExportData}
+              style={styles.menuButton}
+              textStyle={styles.menuButtonText}
+            />
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Settings</Text>
             
-            <View style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
                 <Icon name="notifications" size={24} color={colors.primary} />
-                <Text style={styles.menuItemText}>Push Notifications</Text>
+                <Text style={styles.settingText}>Push Notifications</Text>
               </View>
               <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                value={userData.settings.notifications}
+                onValueChange={handleNotificationToggle}
                 trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={notificationsEnabled ? '#FFFFFF' : colors.textSecondary}
+                thumbColor={userData.settings.notifications ? '#FFFFFF' : colors.textSecondary}
+                disabled={isUpdating}
               />
             </View>
 
-            <View style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
                 <Icon name="finger-print" size={24} color={colors.primary} />
-                <Text style={styles.menuItemText}>Biometric Login</Text>
+                <Text style={styles.settingText}>Biometric Login</Text>
               </View>
               <Switch
-                value={biometricEnabled}
-                onValueChange={setBiometricEnabled}
+                value={userData.settings.biometric}
+                onValueChange={handleBiometricToggle}
                 trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={biometricEnabled ? '#FFFFFF' : colors.textSecondary}
+                thumbColor={userData.settings.biometric ? '#FFFFFF' : colors.textSecondary}
+                disabled={isUpdating}
               />
             </View>
 
@@ -110,7 +221,7 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Support</Text>
+            <Text style={styles.sectionTitle}>Support & Actions</Text>
             
             <Button
               text="Help & Support"
@@ -120,7 +231,14 @@ export default function ProfileScreen() {
             />
 
             <Button
-              text="Logout"
+              text="Reset Portfolio"
+              onPress={handleResetPortfolio}
+              style={styles.resetButton}
+              textStyle={styles.resetButtonText}
+            />
+
+            <Button
+              text="Logout & Clear Data"
               onPress={handleLogout}
               style={styles.logoutButton}
               textStyle={styles.logoutButtonText}
@@ -135,13 +253,47 @@ export default function ProfileScreen() {
           <View style={styles.bottomSheetContent}>
             <Text style={styles.bottomSheetTitle}>Additional Settings</Text>
             <Text style={styles.bottomSheetText}>
-              More settings options will be available here.
+              • Currency: {userData.settings.currency}
+              {'\n'}• Notifications: {userData.settings.notifications ? 'Enabled' : 'Disabled'}
+              {'\n'}• Biometric: {userData.settings.biometric ? 'Enabled' : 'Disabled'}
+              {'\n'}• Portfolio Value: ${userData.portfolio.totalValue.toFixed(2)}
+              {'\n'}• Total Transactions: {userData.transactions.length}
             </Text>
             <Button
               text="Close"
               onPress={() => setShowSettings(false)}
               style={styles.closeButton}
             />
+          </View>
+        </SimpleBottomSheet>
+
+        <SimpleBottomSheet
+          isVisible={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+        >
+          <View style={styles.bottomSheetContent}>
+            <Text style={styles.bottomSheetTitle}>Reset Portfolio?</Text>
+            <Text style={styles.bottomSheetText}>
+              This will:
+              {'\n'}• Clear all your assets
+              {'\n'}• Delete transaction history
+              {'\n'}• Reset balance to $10,000
+              {'\n'}• Keep your settings
+              {'\n\n'}This action cannot be undone!
+            </Text>
+            <View style={styles.buttonRow}>
+              <Button
+                text="Cancel"
+                onPress={() => setShowResetConfirm(false)}
+                style={[styles.closeButton, { flex: 1, marginRight: 8 }]}
+              />
+              <Button
+                text="Reset"
+                onPress={confirmResetPortfolio}
+                style={[styles.resetButton, { flex: 1, marginLeft: 8 }]}
+                textStyle={styles.resetButtonText}
+              />
+            </View>
           </View>
         </SimpleBottomSheet>
       </View>
@@ -178,6 +330,12 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 16,
     color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  userBalance: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
   },
   section: {
     marginBottom: 32,
@@ -188,7 +346,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  menuItem: {
+  menuButton: {
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 8,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+  },
+  menuButtonText: {
+    color: colors.text,
+    textAlign: 'left',
+  },
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -200,12 +370,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  menuItemLeft: {
+  settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  menuItemText: {
+  settingText: {
     fontSize: 16,
     fontWeight: '500',
     color: colors.text,
@@ -229,6 +399,13 @@ const styles = StyleSheet.create({
   supportButtonText: {
     color: colors.primary,
   },
+  resetButton: {
+    backgroundColor: colors.warning || '#F59E0B',
+    marginBottom: 12,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+  },
   logoutButton: {
     backgroundColor: colors.danger,
   },
@@ -250,8 +427,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 24,
   },
   closeButton: {
     width: '100%',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    width: '100%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.danger,
+    textAlign: 'center',
   },
 });
